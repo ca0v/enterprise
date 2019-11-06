@@ -1,6 +1,7 @@
 /* eslint-disable no-nested-ternary, no-useless-escape */
 import { Environment as env } from '../../utils/environment';
 import { numberUtils } from '../../utils/number';
+import { ummalquraData } from './info/umalqura-data';
 
 // If `SohoConfig` exists with a `culturesPath` property, use that path for retrieving
 // culture files. This allows manually setting the directory for the culture files.
@@ -1629,6 +1630,115 @@ const Locale = {  // eslint-disable-line
     }
 
     return words.join(' ');
+  },
+
+  /**
+   * Convert given number from arabic to english.
+   * @private
+   * @param {string} str the arabic number
+   * @returns {number} converted english number
+   */
+  arabicToEnglishNumbers(str) {
+    let r = '';
+    str.replace(/[٠١٢٣٤٥٦٧٨٩]/g, (d) => {
+      r += d.charCodeAt(0) - 1632;
+    });
+    str.replace(/[0123456789]/g, (d) => {
+      r += d.charCodeAt(0) - 48;
+    });
+    return parseInt(r, 10);
+  },
+
+  /**
+   * Convert julian to gregorian date.
+   * @private
+   * @param {object} julianDate the date
+   * @returns {obgect} year, month, day
+   */
+  julianToGregorian(julianDate) {
+    // Modified version of Amro Osama's code. From at https://github.com/kbwood/calendars/blob/master/src/js/jquery.calendars.ummalqura.js
+    const z = Math.floor(parseFloat(julianDate) + 0.5);
+    let a = Math.floor((z - 1867216.25) / 36524.25);
+    a = z + 1 + a - Math.floor(a / 4);
+    const b = a + 1524;
+    const c = Math.floor((b - 122.1) / 365.25);
+    const d = Math.floor(365.25 * c);
+    const e = Math.floor((b - d) / 30.6001);
+    const day = b - d - Math.floor(e * 30.6001);
+    const month = e - (e > 13.5 ? 13 : 1);
+    let year = c - (month > 2.5 ? 4716 : 4715);
+    if (year <= 0) {
+      year--;
+    }
+    return { year, month: month - 1, day };
+  },
+
+  /**
+   * Convert umalqura to gregorian date.
+   * @param {object|number} dateOrYear the year or date object
+   * @param {number} month the month
+   * @param {number} day the day
+   * @returns {obgect} year, month, day
+   */
+  umalquraToGregorian(dateOrYear, month, day) {
+    // Modified version of Amro Osama's code. From at https://github.com/kbwood/calendars/blob/master/src/js/jquery.calendars.ummalqura.js
+    let year = dateOrYear;
+    if (!isNaN(dateOrYear.getTime())) {
+      day = dateOrYear.getDate();
+      month = dateOrYear.getMonth();
+      year = dateOrYear.getFullYear();
+    }
+    const iy = year;
+    const im = month;
+    const id = day;
+    const i = (12 * (iy - 1)) + im - 15292;
+    const mcjdn = id + ummalquraData[i - 1] - 1;
+    const julianDate = mcjdn + 2400000 - 0.5;
+    return this.julianToGregorian(julianDate);
+  },
+
+  /**
+   * Convert gregorian to umalqura date.
+   * @param {object|number} dateOrYear the year or date object
+   * @param {number} month the month
+   * @param {number} day the day
+   * @returns {obgect} year, month, day
+   */
+  gegorianToUmalqura(dateOrYear, month, day) {
+    let date;
+    if (!isNaN(dateOrYear.getTime())) {
+      date = dateOrYear;
+    } else {
+      date = new Date();
+      date.setFullYear(dateOrYear);
+      date.setMonth(month);
+      date.setDate(day);
+      date.setHours(0, 0, 0, 0);
+    }
+    const region = new Intl.DateTimeFormat('ar-u-ca-islamic-umalqura', { timeZone: 'UTC' });
+    let parts;
+    let d;
+    let m;
+    let y;
+
+    if (env.browser.name === 'ie') {
+      parts = region.format(date).split('/');
+      for (let i = 0, l = parts.length; i < l; i++) {
+        parts[i] = this.arabicToEnglishNumbers(parts[i]);
+      }
+      d = parts[0];
+      m = parts[1];
+      y = parts[2];
+    } else {
+      parts = region.formatToParts(date);
+      for (let i = 0, l = parts.length; i < l; i++) {
+        parts[i].value = this.arabicToEnglishNumbers(parts[i].value);
+      }
+      d = parts[0].value;
+      m = parts[2].value;
+      y = parts[4].value;
+    }
+    return { year: y, month: m, day: d };
   },
 
   /**

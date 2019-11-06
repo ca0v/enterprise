@@ -1,0 +1,144 @@
+<style>
+  table {
+    border-collapse: collapse;
+  }
+  th, td {
+    border: 1px solid #333333;
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    font-weight: 700;
+  }
+  .success {
+    color: green;
+  }
+  .error {
+    color: red;
+  }
+</style>
+
+<div class="row">
+  <div class="twelve columns">
+    <h1 class="fieldset-title">Locale - Islamic Calendar</h1>
+  </div>
+</div>
+
+<div class="row">
+  <div class="twelve columns">
+    <div id="results"><p>Loading...</p></div>
+  </div>
+</div>
+
+<script>
+  $('body').on('initialized', function() {
+    var islamic = { locale: 'ar-SA' };
+    Soho.Locale.appendLocaleScript(islamic.locale, false);
+
+    // Set islamic locale
+    function setIslamic() {
+      var deferred = $.Deferred();
+      setTimeout(function() {
+        islamic.calendar = Soho.Locale.cultures[islamic.locale].calendars[0];
+        islamic.conversions = islamic.calendar.conversions;
+        deferred.resolve();
+      }, 100);
+      return deferred.promise();
+    }
+
+    // Get date object
+    function getDate(y, m, d) {
+      var newDate = new Date();
+      newDate.setFullYear(y);
+      newDate.setMonth(m);
+      newDate.setDate(d);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    }
+
+    // Format date
+    function formatDate(date) {
+      return date ? Soho.Locale.formatDate(date, { pattern: 'MM/dd/yyyy' }) : '';
+    }
+
+    // Add days
+    function addDays(date, day) {
+      return new Date(date.getTime() + day * 24 * 60 * 60 * 1000);
+    }
+
+    // Get dates
+    function getDates(start, end) {
+      start = start || new Date();
+      end = end || addDays(start, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      var dates = [];
+      var days = parseInt((end.getTime() - start.getTime()) / (1000 * 3600 * 24), 10);
+
+      for (var i = 0; i <= days; i++) {
+        var d1 = addDays(start, i);
+
+        var d2 = islamic.conversions.fromGregorian(d1);
+        if (d2) {
+          d2[1]++;
+          d2 = getDate.apply(this, d2.slice(0, 3));
+        }
+
+        var d3 = Soho.Locale.gegorianToUmalqura(d1);
+        d3 = getDate(d3.year, d3.month, d3.day);
+
+        var d4 = Soho.Locale.umalquraToGregorian(d3);
+        d4 = getDate(d4.year, d4.month, d4.day);
+
+        dates.push({
+          gregorian: d1,
+          umalquraOld: d2,
+          umalquraNew: d3,
+          gregorianNew: d4
+        });
+      }
+      return dates;
+    }
+
+    // Display output
+    function show(dates) {
+      var output = '<h2>No Dates</h2>';
+      if (dates) {
+        output = '<table><tr><th>Gregorian</th><th>Gregorian(new)</th><th>Umalqura(old)</th><th>Umalqura(new)</th><th>Is Same(Um)</th><th>Is Same(Gr)</th></tr>';
+        for (var i = 0, l = dates.length; i < l; i++) {
+          var d = dates[i];
+          var gregorian = { isSame: d.gregorian.getTime() === d.gregorianNew.getTime() };
+          gregorian.class = ' class="'+ (gregorian.isSame ? 'success' : 'error') +'"';
+          var umalqura = { isSame: false, class: ' class="error"' };
+          if (d.umalquraOld) {
+            umalqura = { isSame: d.umalquraOld.getTime() === d.umalquraNew.getTime() };
+            umalqura.class = ' class="'+ (umalqura.isSame ? 'success' : 'error') +'"';
+          }
+
+          output += '<tr>';
+          output += '<td>'+ formatDate(d.gregorian) +'</td>';
+          output += '<td>'+ formatDate(d.gregorianNew) +'</td>';
+          output += '<td>'+ formatDate(d.umalquraOld) +'</td>';
+          output += '<td>'+ formatDate(d.umalquraNew) +'</td>';
+          output += '<td'+ umalqura.class +'>'+ umalqura.isSame +'</td>';
+          output += '<td'+ gregorian.class +'>'+ gregorian.isSame +'</td>';
+          output += '</tr>';
+        }
+        output += '</table>';
+      }
+      $('#results').html(output);
+    }
+
+    // initialize
+    setIslamic().done(function() {
+      // DO FORMAT FROM LOCALE
+      var start = Soho.Locale.parseDate('04/30/1900', 'M/d/yyyy');
+      var end = Soho.Locale.parseDate('05/13/1900', 'M/d/yyyy');
+
+      var dates = getDates(start, end);
+      show(dates);
+    });
+
+  });
+</script>
