@@ -621,7 +621,7 @@ DatePicker.prototype = {
     this.todayDay = this.todayDate.getDate();
 
     if (this.isIslamic) {
-      this.todayDateIslamic = this.conversions.fromGregorian(this.todayDate);
+      this.todayDateIslamic = this.gregorianToUmalqura(this.todayDate);
       this.todayYear = this.todayDateIslamic[0];
       this.todayMonth = this.todayDateIslamic[1];
       this.todayDay = this.todayDateIslamic[2];
@@ -631,7 +631,7 @@ DatePicker.prototype = {
     this.settings.year = this.currentYear;
     if (this.isIslamic) {
       this.settings.activeDateIslamic = this.activeDate instanceof Date ?
-        this.conversions.fromGregorian(this.activeDate) : this.activeDate;
+        this.gregorianToUmalqura(this.activeDate) : this.activeDate;
     }
 
     if (this.settings.onOpenCalendar) {
@@ -639,7 +639,7 @@ DatePicker.prototype = {
       this.settings.activeDate = this.settings.onOpenCalendar();
 
       if (this.isIslamic) {
-        this.settings.activeDateIslamic = this.conversions.fromGregorian(this.settings.activeDate);
+        this.settings.activeDateIslamic = this.gregorianToUmalqura(this.settings.activeDate);
       }
     } else {
       this.settings.activeDate = this.currentDate || this.todayDate;
@@ -809,7 +809,7 @@ DatePicker.prototype = {
           self.currentYear = year;
           self.currentMonth = month;
           self.currentDay = 1;
-          self.currentDate = self.conversions.toGregorian(year, month, 1);
+          self.currentDate = self.umalquraToGregorian(year, month, 1);
         }
 
         if (s.range.useRange) {
@@ -889,7 +889,7 @@ DatePicker.prototype = {
       self.currentYear = year;
       self.currentMonth = month;
       self.currentDay = day;
-      self.currentDate = self.conversions.toGregorian(year, month, day);
+      self.currentDate = self.umalquraToGregorian(year, month, day);
     }
 
     self.insertDate(self.isIslamic ? self.currentDateIslamic : self.currentDate);
@@ -1070,7 +1070,7 @@ DatePicker.prototype = {
 
     if (date instanceof Array) {
       this.currentIslamicDate = date;
-      this.currentDate = this.conversions.toGregorian(date[0], date[1], date[2]);
+      this.currentDate = this.umalquraToGregorian(date[0], date[1], date[2]);
     }
 
     if (s.range.useRange) {
@@ -1380,13 +1380,13 @@ DatePicker.prototype = {
         locale: this.locale.name
       });
       if (islamicValue instanceof Date) {
-        gregorianValue = this.conversions.toGregorian(
+        gregorianValue = this.umalquraToGregorian(
           islamicValue.getFullYear(),
           islamicValue.getMonth(),
           islamicValue.getDate()
         );
       } else if (islamicValue instanceof Array) {
-        gregorianValue = this.conversions.toGregorian(
+        gregorianValue = this.umalquraToGregorian(
           islamicValue[0],
           islamicValue[1],
           islamicValue[2]
@@ -1412,7 +1412,7 @@ DatePicker.prototype = {
     }
 
     if (this.isIslamic) {
-      this.currentDateIslamic = this.conversions.fromGregorian(this.currentDate);
+      this.currentDateIslamic = this.gregorianToUmalqura(this.currentDate);
       this.currentYear = this.currentDateIslamic[0];
       this.currentMonth = this.currentDateIslamic[1];
       this.currentDay = this.currentDateIslamic[2];
@@ -1513,7 +1513,7 @@ DatePicker.prototype = {
     }
 
     if (this.isIslamic) {
-      const islamicDateParts = this.conversions.fromGregorian(this.currentDate);
+      const islamicDateParts = this.gregorianToUmalqura(this.currentDate);
       this.currentDateIslamic = islamicDateParts;
     }
 
@@ -1608,6 +1608,28 @@ DatePicker.prototype = {
     const h24 = `${h}:${m} + ${(this.isSeconds ? `:${s}` : '')}`;
 
     return isHours24 ? h24 : h12;
+  },
+
+  /**
+   * Convert gregorian to umalqura
+   * @private
+   * @param {object} date .
+   * @returns {array} the values of year, month, day, hours, minutes, seconds, milliseconds, date
+   */
+  gregorianToUmalqura(date) {
+    return Locale.objDateToArray(Locale.gregorianToUmalqura(date));
+  },
+
+  /**
+  * Convert umalqura to gregorian
+   * @private
+   * @param {number} year the year
+   * @param {number} month the month
+   * @param {number} day the day
+   * @returns {object} the set date object
+   */
+  umalquraToGregorian(year, month, day) {
+    return Locale.umalquraToGregorian(year, month, day).date;
   },
 
   /**

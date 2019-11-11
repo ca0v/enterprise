@@ -920,20 +920,21 @@ describe('Locale API', () => {
 
   it('Should properly convert from Gregorian to Islamic UmAlQura', () => {
     Locale.set('ar-SA');
-    let islamicDate = Locale.calendar().conversions.fromGregorian(new Date(new Date(2017, 4, 31)));
+    const gregorianToUmalqura = d => Locale.objDateToArray(Locale.gregorianToUmalqura(d));
+    let islamicDate = gregorianToUmalqura(new Date(new Date(2017, 4, 31)));
 
     expect(`${islamicDate[0].toString()} ${islamicDate[1].toString()} ${islamicDate[2].toString()}`).toEqual('1438 8 5');
 
-    islamicDate = Locale.calendar().conversions.fromGregorian(new Date(new Date(2010, 11, 1)));
+    islamicDate = gregorianToUmalqura(new Date(new Date(2010, 11, 1)));
 
     expect(`${islamicDate[0].toString()} ${islamicDate[1].toString()} ${islamicDate[2].toString()}`).toEqual('1431 11 25');
   });
 
   it('Should properly convert from Islamic UmAlQura to Gregorian', () => {
     Locale.set('ar-SA');
-    const time = Locale.calendar().conversions.toGregorian(1431, 11, 25).getTime();
+    const time = Locale.umalquraToGregorian(1431, 11, 25, 0, 0, 0, 0).date.getTime();
 
-    expect(time).toEqual(new Date(2010, 11, 1, 0, 0, 0).getTime());
+    expect(time).toEqual(new Date(2010, 11, 1, 0, 0, 0, 0).getTime());
   });
 
   it('Should handle numbers passed to parseNumber', () => {
@@ -1464,7 +1465,7 @@ describe('Locale API', () => {
     expect(Locale.translate('XYZ', { showBrackets: false })).toEqual('XYZ');
   });
 
-  it('Should be able get translations in a non current locale', (done) => {
+  it('Should be able get translations in a non current locale 1', (done) => {
     Locale.set('en-US');
     Locale.getLocale('de-DE').done(() => {
       expect(Locale.currentLocale.name).toEqual('en-US');
@@ -1477,7 +1478,7 @@ describe('Locale API', () => {
     });
   });
 
-  it('Should be able get translations in a non current locale', (done) => {
+  it('Should be able get translations in a non current locale 2', (done) => {
     Locale.set('fi-FI');
     Locale.setLanguage('sv');
     Locale.getLocale('de-DE');

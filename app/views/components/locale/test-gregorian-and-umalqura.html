@@ -1,0 +1,147 @@
+<div class="row">
+  <div class="twelve columns">
+    <div id="datagrid"></div>
+    <div id="loading-text" class="list-title">Loading...</div>
+  </div>
+</div>
+
+<script>
+  $('body').on('initialized', function() {
+    var gridElem = $('#datagrid');
+    var islamic = { locale: 'ar-SA' };
+    Soho.Locale.appendLocaleScript(islamic.locale, false);
+
+    // Set islamic locale
+    function setIslamic() {
+      var deferred = $.Deferred();
+      setTimeout(function() {
+        islamic.calendar = Soho.Locale.cultures[islamic.locale].calendars[0];
+        islamic.conversions = islamic.calendar.conversions;
+        deferred.resolve();
+      }, 100);
+      return deferred.promise();
+    }
+
+    // Get date object
+    function getDate(y, m, d) {
+      var newDate = new Date();
+      newDate.setFullYear(y);
+      newDate.setMonth(m);
+      newDate.setDate(d);
+      newDate.setHours(0, 0, 0, 0);
+      return newDate;
+    }
+
+    // Format date
+    function formatDate(date) {
+      // var options = { pattern: 'MM/dd/yyyy h:mm:ss.SSS a' };
+      var options = { pattern: 'MM/dd/yyyy' };
+      return Soho.Locale.formatDate(date, options);
+    }
+
+    // Add days
+    function addDays(date, day) {
+      return new Date(date.getTime() + day * 24 * 60 * 60 * 1000);
+    }
+
+    // Get dates
+    function getDates(start, end) {
+      start = start || new Date();
+      end = end || addDays(start, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      var dates = [];
+      var days = parseInt((end.getTime() - start.getTime()) / (1000 * 3600 * 24), 10);
+      for (var i = 0; i <= days; i++) {
+        var d1 = addDays(start, i);
+        var d2 = islamic.conversions.fromGregorian(d1);
+        if (d2) {
+          // d2[1]++;
+          d2 = getDate.apply(this, d2.slice(0, 3));
+        }
+        var d3 = Soho.Locale.gregorianToUmalqura(d1);
+        d3 = getDate(d3.year, d3.month, d3.day);
+        var d4 = Soho.Locale.umalquraToGregorian(d3);
+        d4 = getDate(d4.year, d4.month, d4.day);
+        dates.push({
+          date: d1,
+          fromGregorianOld: d2, // Previous method, will remove some point
+          gregorianToUmalqura: d3,
+          umalquraToGregorian: d4
+        });
+      }
+      return dates;
+    }
+
+    // Display output
+    function show(dates) {
+      if (dates) {
+        var data = [];
+        var columns = [];
+        var statuses = [
+          { value: true, classes: 'success', text: 'Success'},
+          { value: false, classes: 'error', text: 'Error' }
+        ];
+
+        // Set data
+        for (var i = 0, l = dates.length; i < l; i++) {
+          var d = dates[i];
+          var gregorianIsSame = d.date && d.umalquraToGregorian ?
+            d.date.getTime() === d.umalquraToGregorian.getTime() : false;
+          var umalquraIsSame = d.fromGregorianOld && d.gregorianToUmalqura ?
+            d.fromGregorianOld.getTime() === d.gregorianToUmalqura.getTime() : false;
+          data.push({
+            id: i + 1,
+            date: formatDate(d.date),
+            fromGregorianOld: formatDate(d.fromGregorianOld),
+            gregorianToUmalqura: formatDate(d.gregorianToUmalqura),
+            umalquraToGregorian: formatDate(d.umalquraToGregorian),
+            umalquraStatus: umalquraIsSame
+            // gregorianStatus: gregorianIsSame
+          });
+        }
+
+        // Set columns
+        columns.push({ id: 'date', name: 'Date', field: 'date' });
+        columns.push({ id: 'fromGregorianOld', name: 'fromGregorianOld', field: 'fromGregorianOld' });
+        columns.push({ id: 'gregorianToUmalqura', name: 'gregorianToUmalqura', field: 'gregorianToUmalqura' });
+        columns.push({ id: 'umalquraToGregorian', name: 'umalquraToGregorian', field: 'umalquraToGregorian' });
+        columns.push({ id: 'umalquraStatus', name: 'umalquraStatus', field: 'umalquraStatus', formatter: Formatters.Alert, ranges: statuses });
+        // columns.push({ id: 'gregorianStatus', name: 'gregorianStatus', field: 'gregorianStatus', formatter: Formatters.Alert, ranges: statuses });
+
+        // Invoke grid
+        gridElem.datagrid({
+          columns: columns,
+          dataset: data,
+          paging: true,
+          pagesize: 35,
+          emptyMessage: { title: Locale.translate('NoData'), info: Locale.translate('NoData'), icon: 'icon-empty-no-data' },
+          toolbar: { title: 'Gregorian and Umalqura Dates', results: true, actions: true, rowHeight: true }
+        });
+      }
+    }
+
+    // Hide loading text
+    gridElem.one('rendered', function() {
+      $('#loading-text').addClass('hidden');
+    });
+
+    // initialize
+    setIslamic().done(function() {
+      // var start = new Date(1900, 4, 29);
+      // var dates = getDates(start);
+
+      var start = new Date(2019, 0, 1);
+      var end = new Date(2019, 0, 3);
+      var dates = getDates(start, end);
+
+      // var start = new Date(1900, 3, 30);
+      // var end = new Date(1900, 4, 30);
+      // var dates = getDates(start, end);
+
+      show(dates);
+    });
+
+  });
+</script>

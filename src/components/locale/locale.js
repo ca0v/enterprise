@@ -542,12 +542,12 @@ const Locale = {  // eslint-disable-line
 
     if (cal && cal.conversions) {
       if (options.fromGregorian) {
-        const islamicParts = cal.conversions.fromGregorian(value);
+        const islamicParts = this.objDateToArray(this.gregorianToUmalqura(value));
         day = islamicParts[2];
         month = islamicParts[1];
         year = islamicParts[0];
       } else if (options.toGregorian) {
-        const gregorianDate = cal.conversions.toGregorian(year, month, day);
+        const gregorianDate = this.umalquraToGregorian(year, month, day).date;
         day = gregorianDate.getDate();
         month = gregorianDate.getMonth();
         year = gregorianDate.getFullYear();
@@ -1666,10 +1666,7 @@ const Locale = {  // eslint-disable-line
     const e = Math.floor((b - d) / 30.6001);
     const day = b - d - Math.floor(e * 30.6001);
     const month = e - (e > 13.5 ? 13 : 1);
-    let year = c - (month > 2.5 ? 4716 : 4715);
-    if (year <= 0) {
-      year--;
-    }
+    const year = c - (month > 2.5 ? 4716 : 4715);
     return { year, month: month - 1, day };
   },
 
@@ -1678,23 +1675,48 @@ const Locale = {  // eslint-disable-line
    * @param {object|number} dateOrYear the year or date object
    * @param {number} month the month
    * @param {number} day the day
-   * @returns {obgect} year, month, day
+   * @param {number} hours the hours
+   * @param {number} minutes the minutes
+   * @param {number} seconds the seconds
+   * @param {number} milliseconds the milliseconds
+   * @returns {obgect} year, month, day, hours, minutes, seconds, milliseconds, date
    */
-  umalquraToGregorian(dateOrYear, month, day) {
+  umalquraToGregorian(dateOrYear, month, day, hours, minutes, seconds, milliseconds) {
+    // toGregorian
     // Modified version of Amro Osama's code. From at https://github.com/kbwood/calendars/blob/master/src/js/jquery.calendars.ummalqura.js
+    const isNumber = n => typeof n === 'number' && !isNaN(n);
     let year = dateOrYear;
-    if (!isNaN(dateOrYear.getTime())) {
+    if (typeof dateOrYear.getMonth === 'function') {
       day = dateOrYear.getDate();
       month = dateOrYear.getMonth();
       year = dateOrYear.getFullYear();
+      hours = dateOrYear.getHours();
+      minutes = dateOrYear.getMinutes();
+      seconds = dateOrYear.getSeconds();
+      milliseconds = dateOrYear.getMilliseconds();
+    } else {
+      const date = new Date();
+      hours = isNumber(hours) ? hours : date.getHours();
+      minutes = isNumber(minutes) ? minutes : date.getMinutes();
+      seconds = isNumber(seconds) ? seconds : date.getSeconds();
+      milliseconds = isNumber(milliseconds) ? milliseconds : date.getMilliseconds();
     }
     const iy = year;
-    const im = month;
+    const im = month + 1;
     const id = day;
     const i = (12 * (iy - 1)) + im - 15292;
     const mcjdn = id + ummalquraData[i - 1] - 1;
     const julianDate = mcjdn + 2400000 - 0.5;
-    return this.julianToGregorian(julianDate);
+    const gregorianDate = this.julianToGregorian(julianDate);
+
+    const dt = new Date();
+    dt.setFullYear(gregorianDate.year);
+    dt.setMonth(gregorianDate.month);
+    dt.setDate(gregorianDate.day);
+    dt.setHours(hours, minutes, seconds, milliseconds);
+    $.extend(true, gregorianDate, { hours, minutes, seconds, milliseconds, date: dt });
+
+    return gregorianDate;
   },
 
   /**
@@ -1702,18 +1724,33 @@ const Locale = {  // eslint-disable-line
    * @param {object|number} dateOrYear the year or date object
    * @param {number} month the month
    * @param {number} day the day
-   * @returns {obgect} year, month, day
+   * @param {number} hours the hours
+   * @param {number} minutes the minutes
+   * @param {number} seconds the seconds
+   * @param {number} milliseconds the milliseconds
+   * @returns {obgect} year, month, day, hours, minutes, seconds, milliseconds, date
    */
-  gegorianToUmalqura(dateOrYear, month, day) {
+  gregorianToUmalqura(dateOrYear, month, day, hours, minutes, seconds, milliseconds) {
+    // fromGregorian
+    const isNumber = n => typeof n === 'number' && !isNaN(n);
+    const getValue = n => (isNumber(n) ? n : 0);
     let date;
-    if (!isNaN(dateOrYear.getTime())) {
+    if (typeof dateOrYear.getMonth === 'function') {
       date = dateOrYear;
+      hours = dateOrYear.getHours();
+      minutes = dateOrYear.getMinutes();
+      seconds = dateOrYear.getSeconds();
+      milliseconds = dateOrYear.getMilliseconds();
     } else {
       date = new Date();
       date.setFullYear(dateOrYear);
       date.setMonth(month);
       date.setDate(day);
-      date.setHours(0, 0, 0, 0);
+      date.setHours(getValue(hours), getValue(minutes), getValue(seconds), getValue(milliseconds));
+      hours = date.getHours();
+      minutes = date.getMinutes();
+      seconds = date.getSeconds();
+      milliseconds = date.getMilliseconds();
     }
     const region = new Intl.DateTimeFormat('ar-u-ca-islamic-umalqura', { timeZone: 'UTC' });
     let parts;
@@ -1738,7 +1775,41 @@ const Locale = {  // eslint-disable-line
       m = parts[2].value;
       y = parts[4].value;
     }
-    return { year: y, month: m, day: d };
+    m--;
+    const dt = new Date();
+    dt.setFullYear(y);
+    dt.setMonth(m);
+    dt.setDate(d);
+    dt.setHours(hours, minutes, seconds, milliseconds);
+
+    return {
+      year: y, month: m, day: d, hours, minutes, seconds, milliseconds, date: dt
+    };
+  },
+
+  /**
+   * Convert given date object to array.
+   * @private
+   * @param {object} date the date object
+   * @returns {array} converted values
+   */
+  objDateToArray(date) {
+    let obj = date;
+    if (typeof date.getMonth === 'function') {
+      obj = {
+        date,
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        day: date.getDate(),
+        hours: date.getHours(),
+        minutes: date.getMinutes(),
+        seconds: date.getSeconds(),
+        milliseconds: date.getMilliseconds()
+      };
+    }
+    return [
+      obj.year, obj.month, obj.day, obj.hours, obj.minutes, obj.seconds, obj.milliseconds, obj.date
+    ];
   },
 
   /**

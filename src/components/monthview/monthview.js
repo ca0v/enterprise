@@ -347,14 +347,14 @@ MonthView.prototype = {
     if (this.isIslamic) {
       if (!s.activeDateIslamic) {
         const gregorianDate = new Date();
-        this.todayDateIslamic = this.conversions.fromGregorian(gregorianDate);
+        this.todayDateIslamic = this.gregorianToUmalqura(gregorianDate);
         s.activeDateIslamic = [];
         s.activeDateIslamic[0] = this.todayDateIslamic[0];
         s.activeDateIslamic[1] = this.todayDateIslamic[1];
         s.activeDateIslamic[2] = this.todayDateIslamic[2];
         year = s.activeDateIslamic[0];
         month = s.activeDateIslamic[1];
-        elementDate = this.conversions.fromGregorian(now);
+        elementDate = this.gregorianToUmalqura(now);
       } else {
         elementDate = s.activeDateIslamic;
       }
@@ -534,7 +534,7 @@ MonthView.prototype = {
     if (!this.currentDate) {
       if (this.isIslamic) {
         this.currentIslamicDate = [this.currentYear, this.currentMonth, this.currentDay];
-        this.currentDate = this.conversions.toGregorian(
+        this.currentDate = this.umalquraToGregorian(
           this.currentYear,
           this.currentMonth,
           this.currentDay
@@ -649,7 +649,7 @@ MonthView.prototype = {
    */
   firstDayOfMonth(year, month) {
     if (this.isIslamic) {
-      const firstDay = this.conversions.toGregorian(year, month, 1);
+      const firstDay = this.umalquraToGregorian(year, month, 1);
       return (firstDay === null ? 1 : firstDay.getDay());
     }
     return (new Date(year, month, 1)).getDay();
@@ -728,7 +728,7 @@ MonthView.prototype = {
     const min = (new Date(s.disable.minDate)).setHours(0, 0, 0, 0);
     const max = (new Date(s.disable.maxDate)).setHours(0, 0, 0, 0);
     let d2 = this.isIslamic ?
-      this.conversions.toGregorian(year, month, date) : new Date(year, month, date);
+      this.umalquraToGregorian(year, month, date) : new Date(year, month, date);
 
     // dayOfWeek
     if (s.disable.dayOfWeek.indexOf(d2.getDay()) !== -1) {
@@ -1180,7 +1180,7 @@ MonthView.prototype = {
   */
   selectDay(date, closePopup, insertDate) {
     if (this.isIslamic && typeof date !== 'string') {
-      this.currentIslamicDate = this.currentCalendar.conversions.fromGregorian(date);
+      this.currentIslamicDate = this.gregorianToUmalqura(date);
       date = stringUtils.padDate(
         this.currentIslamicDate[0],
         this.currentIslamicDate[1],
@@ -1203,7 +1203,7 @@ MonthView.prototype = {
 
     if (this.isIslamic) {
       this.currentIslamicDate = date;
-      this.currentDate = this.conversions.toGregorian(year, month, day);
+      this.currentDate = this.umalquraToGregorian(year, month, day);
     } else {
       this.currentDate = new Date(year, month, day);
     }
@@ -1445,7 +1445,7 @@ MonthView.prototype = {
 
         this.currentDate = firstDay;
         if (this.isIslamic) {
-          this.currentIslamicDate = this.conversions.fromGregorian(this.currentDate);
+          this.currentIslamicDate = this.gregorianToUmalqura(this.currentDate);
         }
         this.selectDay(this.currentDate, false, false);
       }
@@ -1470,7 +1470,7 @@ MonthView.prototype = {
 
         this.currentDate = lastDay;
         if (this.isIslamic) {
-          this.currentIslamicDate = this.conversions.fromGregorian(this.currentDate);
+          this.currentIslamicDate = this.gregorianToUmalqura(this.currentDate);
         }
         this.selectDay(this.currentDate, false, false);
       }
@@ -1506,7 +1506,7 @@ MonthView.prototype = {
 
         if (this.isIslamic) {
           this.currentIslamicDate = [d.year, d.month, d.day];
-          this.currentDate = this.conversions.toGregorian(
+          this.currentDate = this.umalquraToGregorian(
             this.currentIslamicDate[0],
             this.currentIslamicDate[1],
             this.currentIslamicDate[2]
@@ -1827,6 +1827,28 @@ MonthView.prototype = {
       elem.focus();
     }
     return elem;
+  },
+
+  /**
+   * Convert gregorian to umalqura
+   * @private
+   * @param {object} date .
+   * @returns {array} the values of year, month, day, hours, minutes, seconds, milliseconds, date
+   */
+  gregorianToUmalqura(date) {
+    return Locale.objDateToArray(Locale.gregorianToUmalqura(date));
+  },
+
+  /**
+  * Convert umalqura to gregorian
+   * @private
+   * @param {number} year the year
+   * @param {number} month the month
+   * @param {number} day the day
+   * @returns {object} the set date object
+   */
+  umalquraToGregorian(year, month, day) {
+    return Locale.umalquraToGregorian(year, month, day).date;
   },
 
   /**
